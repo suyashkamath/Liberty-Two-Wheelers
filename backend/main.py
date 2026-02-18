@@ -1412,9 +1412,20 @@ async def upload_file(file: UploadFile = File(...)):
         if not file.filename.endswith((".xlsx", ".xls")):
             raise HTTPException(status_code=400, detail="Only Excel files supported")
         
+        # content = await file.read()
+        # xls = pd.ExcelFile(io.BytesIO(content))
+        # sheets = xls.sheet_names
+        import openpyxl
         content = await file.read()
-        xls = pd.ExcelFile(io.BytesIO(content))
-        sheets = xls.sheet_names
+        
+        # Load workbook and get only VISIBLE sheets
+        wb = openpyxl.load_workbook(io.BytesIO(content))
+        sheets = [
+            sheet.title 
+            for sheet in wb.worksheets 
+            if sheet.sheet_state == 'visible'
+        ]
+        wb.close()
         
         file_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         uploaded_files[file_id] = {
